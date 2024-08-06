@@ -1,6 +1,6 @@
 /// Draw parameters
 const bool useOnlyLeafNodes = false;
-const bool useMouseClick = false;
+const bool useMouseClick = true;
 const bool doDrawDots = true;
 ///
 
@@ -75,7 +75,7 @@ ChildrenInfo getChildrenInfo(int levelStart, int levelIndex, vec2 uv)
 
         childrenInfo.options = childrenInfo.options | 1;
         childrenInfo.rightIndex = potentialRightChildIndex;
-        childrenInfo.leftDistance = rightChild.type == 0 ? distanceToBbox(bboxes[potentialRightChildIndex], rightChild.vertex) : distance(rightChild.vertex, uv);   
+        childrenInfo.rightDistance = rightChild.type == 0 ? distanceToBbox(bboxes[potentialRightChildIndex], rightChild.vertex) : distance(rightChild.vertex, uv);   
     }
 
     return childrenInfo;

@@ -7,18 +7,18 @@ def shift_bit_length(x):
     return 1 << (x-1).bit_length()
 
 
-def is_node_leaf(node: kdtree.Node):
-    return node.left is None and node.right is None
+def is_node_leaf(node):
+    return node.left.data is None and node.right.data is None
 
 
-def generate_bboxes(node: kdtree.Node, bbox: list[float]) -> list[list[float]]:
+def generate_bboxes(node, bbox):
     bboxes = [bbox]
     node_queue = [(tree, bbox)]
 
     while len(node_queue):
         node, node_bbox = node_queue.pop(0)
 
-        if node.left is not None and not is_node_leaf(node.left):
+        if node.left.data is not None and not is_node_leaf(node.left):
             split_point = node_bbox[1][:]
             split_point[node.axis] = node.data[node.axis]
             left_bbox = [
@@ -28,7 +28,7 @@ def generate_bboxes(node: kdtree.Node, bbox: list[float]) -> list[list[float]]:
             bboxes.append(left_bbox)
             node_queue.append((node.left, left_bbox))
 
-        if node.right is not None and not is_node_leaf(node.right):
+        if node.right.data is not None and not is_node_leaf(node.right):
             split_point = node_bbox[0][:]
             split_point[node.axis] = node.data[node.axis]
             right_bbox = [
@@ -41,7 +41,7 @@ def generate_bboxes(node: kdtree.Node, bbox: list[float]) -> list[list[float]]:
     return bboxes
 
 
-def get_node_strings_with_gaps(tree: kdtree.Node, points_count: int) -> list[kdtree.Node]:
+def get_node_strings_with_gaps(tree, points_count):
     node_queue = [tree]
     node_strings = []
 
@@ -74,8 +74,9 @@ def get_node_strings_with_gaps(tree: kdtree.Node, points_count: int) -> list[kdt
 
 
 # Input points
-points = [(random.random(), random.random()) for i in range(0, 50)]
+points = [(round(random.random(), 3), round(random.random(), 3)) for i in range(0, 255)]
 # [(0, 0), (.1, .1), (.2, .2), (.3, .3), (.4, .4), (.5, .5), (.6, .6), (.7, .7), (.8, .8), (.9, .9), (1, 1)]
+
 
 bbox = [[float('inf'), float('inf')], [float('-inf'), float('-inf')]]
 for p in points:
@@ -84,15 +85,21 @@ for p in points:
 
 
 tree = kdtree.create(points, dimensions=2)
-
 bboxes = generate_bboxes(tree, bbox)
+
+pure_points_string = ",\n".join([f"vec2({p[0]}, {p[1]})" for p in points])
+baseline_string = f"""
+const vec2[] points = vec2[] (
+{pure_points_string}
+);
+const int pointsLength = {len(points)};
+"""
 
 node_strings = get_node_strings_with_gaps(tree, len(points))
 bbox_strings = [
     f"    Bbox(vec2({b[0][0]}, {b[0][1]}), vec2({b[1][0]}, {b[1][1]}))"
     for b in bboxes
 ]
-
 
 preamble = """struct KDNode {
     vec2 vertex;
@@ -103,18 +110,25 @@ struct Bbox {
     vec2 min;
     vec2 max;
 };"""
+nodes_string = ",\n".join(node_strings)
+bboxes_string = ",\n".join(bbox_strings)
 output = f"""{preamble}
 
 const KDNode[] kdtree = KDNode[] (
-{",\n".join(node_strings)}
+{nodes_string}
 );
 const int treeSize = {len(node_strings)};
 
 const Bbox[] bboxes = Bbox[] (
-{",\n".join(bbox_strings)}
+{bboxes_string}
 );
 const int bboxLength = {len(bbox_strings)};
 """
 
-print(output)
+with open('input_kdtree.txt', 'w') as f:
+    f.writelines(output)
+with open('input_baseline.txt', 'w') as f:
+    f.writelines(baseline_string)
+
+
 kdtree.visualize(tree)
